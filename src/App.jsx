@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Map, ListTodo, Plus, Trash2, CheckCircle2, Circle, MapPin, 
   Map as MapIcon, X, Bed, Star, Hotel, Banknote, Search, 
-  Flower2, Calendar, Share2, Check, User, Heart, CloudLightning
+  Flower2, Calendar, Share2, Check, User, Heart, CloudLightning,
+  MapPinned, Route
 } from 'lucide-react';
 
 // Firebase 패키지 임포트
@@ -87,7 +88,7 @@ const INITIAL_CHECKLISTS = {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('schedule');
+  const [activeTab, setActiveTab] = useState('overview'); // 기본 탭을 동선지도로!
   const [mapModal, setMapModal] = useState({ isOpen: false, title: '', query: '' });
   
   // 파이어베이스 인증 및 공유 상태
@@ -108,7 +109,7 @@ export default function App() {
   const [checklists, setChecklists] = useState(INITIAL_CHECKLISTS);
   const [newItem, setNewItem] = useState('');
 
-  // 1. Firebase 익명 로그인 (누구나 수정 가능하게)
+  // 1. Firebase 익명 로그인
   useEffect(() => {
     const initAuth = async () => {
       try { await signInAnonymously(auth); } 
@@ -122,14 +123,11 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 2. 실시간 데이터 동기화 리스너 (shareId가 있을 때만 작동)
+  // 2. 실시간 데이터 동기화 리스너
   useEffect(() => {
     if (!user || !shareId) return;
 
-    // plnners 컬렉션 아래에 shareId 이름의 문서에 접근
     const docRef = doc(db, 'planners', shareId);
-    
-    // onSnapshot: 데이터베이스가 변경될 때마다 화면 즉시 업데이트
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -141,7 +139,7 @@ export default function App() {
     return () => unsubscribe();
   }, [user, shareId]);
 
-  // 3. 파이어베이스에 데이터 저장 함수 (상태가 바뀔 때마다 호출)
+  // 3. 파이어베이스에 데이터 저장 함수
   const syncToFirestore = async (newSchedules, newChecklists) => {
     if (!shareId || !user) return;
     const docRef = doc(db, 'planners', shareId);
@@ -155,7 +153,7 @@ export default function App() {
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  // --- 공유하기: 새로운 공유 방(shareId) 생성 ---
+  // --- 공유하기 ---
   const handleShare = async () => {
     if (!user) {
       showToast("데이터베이스 연결 대기 중입니다. 잠시 후 다시 시도해주세요.");
@@ -165,16 +163,12 @@ export default function App() {
     let currentShareId = shareId;
     let newUrl = window.location.href;
 
-    // 공유 ID가 없으면 새로 생성 (8자리 랜덤 문자열)
     if (!currentShareId) {
       currentShareId = Math.random().toString(36).substring(2, 10);
       const docRef = doc(db, 'planners', currentShareId);
       
       try {
-        // 최초 데이터 세팅
         await setDoc(docRef, { schedules, checklists, createdAt: new Date().toISOString() });
-        
-        // URL 주소줄 파라미터 업데이트 (새로고침 없이)
         newUrl = window.location.origin + window.location.pathname + '?shareId=' + currentShareId;
         window.history.pushState({path: newUrl}, '', newUrl);
         setShareId(currentShareId);
@@ -185,7 +179,6 @@ export default function App() {
       }
     }
 
-    // URL 클립보드 복사
     if (navigator.clipboard) {
       navigator.clipboard.writeText(newUrl).then(() => {
         showToast("실시간 공유 링크 복사 완료! 아내에게 붙여넣기 하세요.");
@@ -210,7 +203,28 @@ export default function App() {
   const searchRealtimePrice = (keyword) => window.open(`https://search.naver.com/search.naver?query=${encodeURIComponent(keyword)}`, '_blank');
   const getDateLabel = (dayIndex) => `6.${3 + dayIndex - 1}`;
 
-  // --- 데이터 수정 함수들 (Firebase 동기화 포함) ---
+  // ★ 구글 지도로 전체 경로 열기 기능 ★
+  const openGoogleDirections = (daySchedules) => {
+    if (!daySchedules || daySchedules.length === 0) return;
+    
+    // 장소가 1개일 경우 그냥 검색 결과로
+    if (daySchedules.length === 1) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(daySchedules[0].query)}`, '_blank');
+      return;
+    }
+
+    // 장소가 2개 이상일 경우 출발지, 도착지, 경유지 설정
+    const origin = daySchedules[0].query;
+    const destination = daySchedules[daySchedules.length - 1].query;
+    const waypoints = daySchedules.slice(1, -1).map(s => encodeURIComponent(s.query)).join('|');
+    
+    let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+    if (waypoints) url += `&waypoints=${waypoints}`;
+    
+    window.open(url, '_blank');
+  };
+
+  // --- 데이터 수정 함수들 ---
   const addSchedule = (e) => {
     e.preventDefault();
     if (!newSchedule.trim()) return;
@@ -219,14 +233,14 @@ export default function App() {
       [activeDay]: [...schedules[activeDay], { id: Date.now(), time: newTime || '-', text: newSchedule.trim(), query: newSchedule.trim() }].sort((a, b) => a.time.localeCompare(b.time))
     };
     setSchedules(newSchedules);
-    syncToFirestore(newSchedules, checklists); // 저장
+    syncToFirestore(newSchedules, checklists);
     setNewSchedule(''); setNewTime('');
   };
 
   const deleteSchedule = (day, id) => {
     const newSchedules = { ...schedules, [day]: schedules[day].filter(item => item.id !== id) };
     setSchedules(newSchedules);
-    syncToFirestore(newSchedules, checklists); // 저장
+    syncToFirestore(newSchedules, checklists);
   };
 
   const toggleCheck = (person, id) => {
@@ -235,7 +249,7 @@ export default function App() {
       [person]: checklists[person].map(item => item.id === id ? { ...item, checked: !item.checked } : item)
     };
     setChecklists(newChecklists);
-    syncToFirestore(schedules, newChecklists); // 저장
+    syncToFirestore(schedules, newChecklists);
   };
 
   const addChecklistItem = (e) => {
@@ -246,14 +260,14 @@ export default function App() {
       [activePerson]: [...checklists[activePerson], { id: Date.now().toString(), category: '추가 항목', text: newItem.trim(), checked: false }]
     };
     setChecklists(newChecklists);
-    syncToFirestore(schedules, newChecklists); // 저장
+    syncToFirestore(schedules, newChecklists);
     setNewItem('');
   };
 
   const deleteChecklistItem = (person, id) => {
     const newChecklists = { ...checklists, [person]: checklists[person].filter(item => item.id !== id) };
     setChecklists(newChecklists);
-    syncToFirestore(schedules, newChecklists); // 저장
+    syncToFirestore(schedules, newChecklists);
   };
 
   return (
@@ -287,6 +301,82 @@ export default function App() {
         </header>
 
         <main className="flex-1 overflow-y-auto px-5 py-6 pb-28 scroll-smooth">
+          
+          {/* ★ NEW: 아기자기한 동선지도 (여정 지도) 탭 ★ */}
+          {activeTab === 'overview' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-6 bg-teal-50 border border-teal-100 rounded-2xl p-4">
+                <h2 className="text-[15px] font-bold text-teal-800 mb-1 flex items-center">
+                  <Route className="w-4 h-4 mr-1.5" /> 아기자기한 여정 지도
+                </h2>
+                <p className="text-xs text-teal-700 break-keep leading-relaxed">
+                  오늘 하루 우리가 이동할 경로입니다. 딱딱한 구글지도 대신 귀여운 보드게임 형태로 일정을 한눈에 확인하세요!
+                </p>
+              </div>
+
+              <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+                {[1, 2, 3, 4, 5].map(day => (
+                  <button key={day} onClick={() => setActiveDay(day)} className={`flex flex-col items-center min-w-[70px] px-3 py-2.5 rounded-2xl font-medium transition-colors ${activeDay === day ? 'bg-teal-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
+                    <span className="text-[10px] mb-0.5 opacity-80">{getDateLabel(day)}</span><span className="text-sm">Day {day}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 mb-4 relative overflow-hidden">
+                {/* 배경 꾸미기 요소 */}
+                <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-yellow-100 rounded-full mix-blend-multiply filter blur-2xl opacity-60"></div>
+                <div className="absolute bottom-10 left-[-20px] w-32 h-32 bg-teal-100 rounded-full mix-blend-multiply filter blur-2xl opacity-60"></div>
+                
+                <h2 className="text-lg font-bold text-gray-800 mb-8 flex items-center relative z-10">
+                  <MapPinned className="w-5 h-5 mr-2 text-teal-500" /> {getDateLabel(activeDay)} 동선 요약
+                </h2>
+
+                <div className="relative z-10 min-h-[200px] mb-8">
+                  {schedules[activeDay].length === 0 ? (
+                    <div className="text-center py-10 text-gray-400 text-sm font-medium">오늘은 일정이 텅 비어있네요!</div>
+                  ) : (
+                    <div className="relative">
+                      {/* 타임라인 메인 줄 */}
+                      <div className="absolute left-[27px] top-4 bottom-4 w-1.5 bg-teal-100 rounded-full"></div>
+                      
+                      <ul className="space-y-8">
+                        {schedules[activeDay].map((item, index) => {
+                          const colors = ['bg-pink-400', 'bg-teal-400', 'bg-yellow-400', 'bg-indigo-400', 'bg-orange-400'];
+                          const colorClass = colors[index % colors.length];
+                          
+                          return (
+                            <li key={item.id} className="flex items-center gap-4 relative group">
+                              {/* 동그라미 마커 */}
+                              <div className={`w-14 h-14 rounded-full border-4 border-white shadow-md flex items-center justify-center flex-shrink-0 z-10 ${colorClass} transition-transform group-hover:scale-110`}>
+                                <span className="text-white font-extrabold text-lg">{index + 1}</span>
+                              </div>
+                              
+                              {/* 텍스트 박스 */}
+                              <div className="flex-1 bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-gray-100 relative">
+                                <div className="absolute left-[-6px] top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-l border-b border-gray-100 transform rotate-45"></div>
+                                <p className="text-xs font-extrabold text-teal-500 mb-1">{item.time}</p>
+                                <p className="text-sm font-bold text-gray-800 break-keep">{item.text}</p>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                {/* 구글 길찾기 연동 버튼 */}
+                <button 
+                  onClick={() => openGoogleDirections(schedules[activeDay])}
+                  className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm flex items-center justify-center hover:bg-gray-800 shadow-xl transition-all active:scale-[0.98] relative z-10"
+                >
+                  <MapIcon className="w-5 h-5 mr-2" /> 구글 지도로 드라이브 경로 보기
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 일정 관리 탭 */}
           {activeTab === 'schedule' && (
             <div>
               <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
@@ -297,7 +387,7 @@ export default function App() {
                 ))}
               </div>
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4 relative">
-                <h2 className="text-lg font-bold text-gray-800 mb-5 flex items-center"><Map className="w-5 h-5 mr-2 text-gray-900" /> {getDateLabel(activeDay)} 나의 동선</h2>
+                <h2 className="text-lg font-bold text-gray-800 mb-5 flex items-center"><ListTodo className="w-5 h-5 mr-2 text-gray-900" /> {getDateLabel(activeDay)} 일정 수정</h2>
                 <div className="absolute left-[38px] top-[70px] bottom-[100px] w-px bg-gray-200 z-0"></div>
                 <ul className="space-y-4 mb-6 min-h-[180px] relative z-10">
                   {schedules[activeDay].length === 0 ? (
@@ -383,15 +473,18 @@ export default function App() {
           )}
         </main>
 
-        <nav className="absolute bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 px-6 py-4 flex justify-between items-center pb-8 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-20">
+        <nav className="absolute bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 px-2 py-4 flex justify-around items-center pb-8 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-20">
+          <button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'overview' ? 'text-teal-500' : 'text-gray-400 hover:text-gray-600'}`}>
+            <MapPinned className={`w-6 h-6 ${activeTab === 'overview' ? 'fill-teal-50' : ''}`} /><span className="text-[10px] font-bold">동선지도</span>
+          </button>
           <button onClick={() => setActiveTab('schedule')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'schedule' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>
-            <Map className={`w-6 h-6 ${activeTab === 'schedule' ? 'fill-gray-100' : ''}`} /><span className="text-[10px] font-bold">최적일정</span>
+            <ListTodo className={`w-6 h-6 ${activeTab === 'schedule' ? 'fill-gray-100' : ''}`} /><span className="text-[10px] font-bold">일정수정</span>
           </button>
           <button onClick={() => setActiveTab('accommodations')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'accommodations' ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}>
             <Bed className={`w-6 h-6 ${activeTab === 'accommodations' ? 'fill-teal-50' : ''}`} /><span className="text-[10px] font-bold">추천숙소</span>
           </button>
           <button onClick={() => setActiveTab('checklist')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'checklist' ? 'text-indigo-500' : 'text-gray-400 hover:text-gray-600'}`}>
-            <ListTodo className={`w-6 h-6 ${activeTab === 'checklist' ? 'fill-indigo-50' : ''}`} /><span className="text-[10px] font-bold">준비물</span>
+            <CheckCircle2 className={`w-6 h-6 ${activeTab === 'checklist' ? 'fill-indigo-50' : ''}`} /><span className="text-[10px] font-bold">준비물</span>
           </button>
         </nav>
 
