@@ -3,7 +3,7 @@ import {
   Map, ListTodo, Plus, Trash2, CheckCircle2, Circle, MapPin, 
   Map as MapIcon, X, Bed, Star, Hotel, Banknote, Search, 
   Flower2, Calendar, Share2, Check, User, Heart, CloudLightning,
-  MapPinned, Route
+  MapPinned, Route, Globe, Car
 } from 'lucide-react';
 
 // Firebase 패키지 임포트
@@ -27,35 +27,66 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// --- 기본 데이터 세팅 ---
+// --- 기본 데이터 세팅 (식사, 복귀, 이동시간 추가) ---
 const OPTIMAL_SCHEDULES = {
   1: [
-    { id: 101, time: '14:00', text: '제주공항 도착 및 렌터카 인수', query: '제주국제공항' },
-    { id: 102, time: '15:30', text: '구좌읍 송당리 마을 (커피/소품샵 산책)', query: '제주 구좌읍 송당리' },
-    { id: 103, time: '17:30', text: '동부 숙소 체크인 및 휴식', query: '에코랜드 호텔' }
+    { id: 101, time: '14:00', text: '제주공항 도착 및 렌터카 인수', query: '제주국제공항', driveTime: '40분' },
+    { id: 102, time: '15:30', text: '구좌읍 송당리 (커피 및 소품샵)', query: '제주 송당리', driveTime: '15분' },
+    { id: 103, time: '17:30', text: '동부 숙소 체크인 및 짐 풀기', query: '제주 에코랜드 호텔', driveTime: '15분' },
+    { id: 104, time: '18:30', text: '저녁식사 (조천/함덕 인근 맛집)', query: '제주 조천읍 맛집', driveTime: '15분' },
+    { id: 105, time: '20:00', text: '숙소 복귀 및 휴식', query: '제주 에코랜드 호텔' }
   ],
   2: [
-    { id: 201, time: '09:30', text: '거문오름 탐방 (사전예약 필수)', query: '제주 거문오름' },
-    { id: 202, time: '13:00', text: '아부오름 (분화구 피크닉)', query: '제주 아부오름' },
-    { id: 203, time: '16:00', text: '혼인지 (제주 최고의 6월 수국 명소)', query: '제주 혼인지' }
+    { id: 201, time: '09:30', text: '거문오름 탐방 (사전예약 필수)', query: '제주 거문오름', driveTime: '15분' },
+    { id: 204, time: '12:00', text: '점심식사 (선흘리 인근 밥집)', query: '제주 선흘리 맛집', driveTime: '15분' },
+    { id: 202, time: '13:30', text: '아부오름 (분화구 피크닉)', query: '제주 아부오름', driveTime: '25분' },
+    { id: 203, time: '16:00', text: '혼인지 (6월 최고의 수국 명소)', query: '제주 혼인지', driveTime: '30분' },
+    { id: 205, time: '18:00', text: '저녁식사 (성산 해산물/흑돼지)', query: '제주 성산 맛집', driveTime: '35분' },
+    { id: 206, time: '20:00', text: '숙소 복귀', query: '제주 에코랜드 호텔' }
   ],
   3: [
-    { id: 301, time: '10:00', text: '동부 숙소 체크아웃 및 서귀포로 이동', query: '서귀포 치유의 숲' },
-    { id: 302, time: '11:00', text: '서귀포 치유의 숲 (편백나무 숲 힐링)', query: '제주 서귀포 치유의 숲' },
-    { id: 303, time: '14:00', text: '대평리 마을 (박수기정 뷰 보며 커피)', query: '제주 대평포구' },
-    { id: 304, time: '16:30', text: '서부 숙소 체크인 및 호캉스', query: '제주 신화월드 서머셋' }
+    { id: 301, time: '10:00', text: '동부 숙소 체크아웃 및 이동', query: '제주 에코랜드 호텔', driveTime: '45분' },
+    { id: 302, time: '11:00', text: '서귀포 치유의 숲 (편백 힐링)', query: '제주 서귀포 치유의 숲', driveTime: '20분' },
+    { id: 305, time: '13:00', text: '점심식사 (서귀포 시내권)', query: '제주 서귀포 신시가지 맛집', driveTime: '30분' },
+    { id: 303, time: '14:30', text: '대평리 마을 (박수기정 뷰 커피)', query: '제주 대평포구', driveTime: '15분' },
+    { id: 304, time: '16:30', text: '서부 숙소 체크인 (신화월드)', query: '제주 신화월드 서머셋', driveTime: '10분' },
+    { id: 306, time: '18:00', text: '저녁식사 (안덕/모슬포 인근)', query: '제주 안덕면 맛집', driveTime: '10분' },
+    { id: 307, time: '19:30', text: '숙소 복귀 및 호캉스', query: '제주 신화월드 서머셋' }
   ],
   4: [
-    { id: 401, time: '09:00', text: '모슬포항 -> 가파도 입도 (자전거 투어)', query: '제주 가파도 선착장' },
-    { id: 402, time: '14:00', text: '안성리 수국길 (조용한 마을 수국)', query: '제주 안성리 수국길' },
-    { id: 403, time: '17:30', text: '신창풍차해안도로 (일몰 드라이브)', query: '제주 신창풍차해안도로' }
+    { id: 401, time: '09:00', text: '가파도 선착장 이동', query: '제주 가파도 선착장', driveTime: '배 15분' },
+    { id: 404, time: '10:00', text: '가파도 자전거 투어 & 섬 점심', query: '제주 가파도', driveTime: '배 15분' },
+    { id: 402, time: '14:00', text: '안성리 수국길 (조용한 마을)', query: '제주 안성리 수국길', driveTime: '20분' },
+    { id: 405, time: '16:00', text: '수월봉 엉알해안 (바닷바람 산책)', query: '제주 수월봉', driveTime: '15분' },
+    { id: 403, time: '17:30', text: '신창풍차해안 (서쪽 일몰)', query: '제주 신창풍차해안도로', driveTime: '25분' },
+    { id: 406, time: '18:30', text: '저녁식사 (한림 인근 분위기 좋은 곳)', query: '제주 한림 맛집', driveTime: '30분' },
+    { id: 407, time: '20:30', text: '숙소 복귀', query: '제주 신화월드 서머셋' }
   ],
   5: [
-    { id: 501, time: '11:00', text: '서부 숙소 체크아웃', query: '제주 신화월드 서머셋' },
-    { id: 502, time: '12:00', text: '사계해안 (이국적인 지질트레일 산책)', query: '제주 사계해안' },
-    { id: 503, time: '15:00', text: '렌터카 반납 및 제주공항 이동', query: '제주국제공항' }
+    { id: 501, time: '10:00', text: '서부 숙소 체크아웃', query: '제주 신화월드 서머셋', driveTime: '15분' },
+    { id: 502, time: '10:30', text: '사계해안 (지질트레일 구경)', query: '제주 사계해안', driveTime: '15분' },
+    { id: 504, time: '12:00', text: '점심식사 (산방산 인근)', query: '제주 산방산 맛집', driveTime: '50분' },
+    { id: 503, time: '14:00', text: '렌터카 반납 & 제주공항 이동', query: '제주국제공항' }
   ]
 };
+
+// 제주도 전체지도 (아기자기한 SVG 대용 CSS 맵) 좌표 세팅
+const MAP_LOCATIONS = [
+  { name: '제주공항', x: '50%', y: '15%', day: 1 },
+  { name: '송당리', x: '75%', y: '35%', day: 1 },
+  { name: '에코랜드(숙소)', x: '65%', y: '40%', day: 1 },
+  { name: '거문오름', x: '70%', y: '30%', day: 2 },
+  { name: '아부오름', x: '78%', y: '45%', day: 2 },
+  { name: '혼인지', x: '90%', y: '55%', day: 2 },
+  { name: '치유의숲', x: '45%', y: '65%', day: 3 },
+  { name: '대평리', x: '35%', y: '80%', day: 3 },
+  { name: '신화월드(숙소)', x: '25%', y: '65%', day: 3 },
+  { name: '가파도', x: '15%', y: '90%', day: 4 },
+  { name: '안성리', x: '22%', y: '75%', day: 4 },
+  { name: '수월봉', x: '8%', y: '60%', day: 4 },
+  { name: '신창풍차해안', x: '12%', y: '45%', day: 4 },
+  { name: '사계해안', x: '28%', y: '85%', day: 5 },
+];
 
 const OPTIMAL_ACCOMMODATIONS = [
   {
@@ -88,18 +119,14 @@ const INITIAL_CHECKLISTS = {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('overview'); // 기본 탭을 동선지도로!
+  const [activeTab, setActiveTab] = useState('fullmap'); // 앱을 켜자마자 전체 지도를 띄웁니다!
   const [mapModal, setMapModal] = useState({ isOpen: false, title: '', query: '' });
   
-  // 파이어베이스 인증 및 공유 상태
   const [user, setUser] = useState(null);
-  
-  // 브라우저 URL 파라미터에서 shareId 읽기
   const urlParams = new URLSearchParams(window.location.search);
   const [shareId, setShareId] = useState(urlParams.get('shareId'));
   const [toastMsg, setToastMsg] = useState('');
   
-  // 데이터 상태
   const [activeDay, setActiveDay] = useState(1);
   const [schedules, setSchedules] = useState(OPTIMAL_SCHEDULES);
   const [newSchedule, setNewSchedule] = useState('');
@@ -116,17 +143,13 @@ export default function App() {
       catch (error) { console.error("Firebase Auth Error", error); }
     };
     initAuth();
-
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
+    const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
   }, []);
 
   // 2. 실시간 데이터 동기화 리스너
   useEffect(() => {
     if (!user || !shareId) return;
-
     const docRef = doc(db, 'planners', shareId);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -135,17 +158,15 @@ export default function App() {
         if (data.checklists) setChecklists(data.checklists);
       }
     });
-
     return () => unsubscribe();
   }, [user, shareId]);
 
-  // 3. 파이어베이스에 데이터 저장 함수
+  // 3. 파이어베이스 데이터 저장
   const syncToFirestore = async (newSchedules, newChecklists) => {
     if (!shareId || !user) return;
     const docRef = doc(db, 'planners', shareId);
-    try {
-      await setDoc(docRef, { schedules: newSchedules, checklists: newChecklists }, { merge: true });
-    } catch(e) { console.error("Sync error:", e); }
+    try { await setDoc(docRef, { schedules: newSchedules, checklists: newChecklists }, { merge: true }); } 
+    catch(e) { console.error("Sync error:", e); }
   };
 
   const showToast = (msg) => {
@@ -153,38 +174,38 @@ export default function App() {
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  // --- 공유하기 ---
+  // --- 공유하기 (텍스트 요약 버전) ---
   const handleShare = async () => {
     if (!user) {
-      showToast("데이터베이스 연결 대기 중입니다. 잠시 후 다시 시도해주세요.");
-      return;
+      showToast("데이터베이스 연결 대기 중입니다."); return;
     }
-
     let currentShareId = shareId;
     let newUrl = window.location.href;
 
     if (!currentShareId) {
       currentShareId = Math.random().toString(36).substring(2, 10);
       const docRef = doc(db, 'planners', currentShareId);
-      
       try {
         await setDoc(docRef, { schedules, checklists, createdAt: new Date().toISOString() });
         newUrl = window.location.origin + window.location.pathname + '?shareId=' + currentShareId;
         window.history.pushState({path: newUrl}, '', newUrl);
         setShareId(currentShareId);
       } catch(e) {
-        showToast("공유 링크 생성에 실패했습니다.");
-        console.error(e);
-        return;
+        showToast("공유 링크 생성에 실패했습니다."); return;
       }
     }
 
+    let textToShare = `🍊 우리의 네 번째 제주 여행\n📅 6.3 - 6.7 (4박 5일)\n\n`;
+    textToShare += `🗺️ [실시간 연동 플래너 링크]\n${newUrl}\n(서로 일정을 추가하면 바로 공유돼!)\n\n`;
+    textToShare += `🏨 [우리의 숙소]\n`;
+    OPTIMAL_ACCOMMODATIONS.forEach(acc => { textToShare += `▪️ ${acc.stayDate} : ${acc.name}\n`; });
+    
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(newUrl).then(() => {
-        showToast("실시간 공유 링크 복사 완료! 아내에게 붙여넣기 하세요.");
-      }).catch(() => fallbackCopy(newUrl));
+      navigator.clipboard.writeText(textToShare).then(() => {
+        showToast("공유 링크와 요약이 복사되었습니다! 카톡에 붙여넣기 하세요.");
+      }).catch(() => fallbackCopy(textToShare));
     } else {
-      fallbackCopy(newUrl);
+      fallbackCopy(textToShare);
     }
   };
 
@@ -193,7 +214,7 @@ export default function App() {
     textArea.value = text;
     document.body.appendChild(textArea);
     textArea.select();
-    try { document.execCommand('copy'); showToast("실시간 공유 링크 복사 완료!"); } 
+    try { document.execCommand('copy'); showToast("복사 완료! 카톡에 붙여넣으세요."); } 
     catch (err) { showToast("링크 복사 실패."); }
     document.body.removeChild(textArea);
   };
@@ -201,36 +222,28 @@ export default function App() {
   const openMap = (title, query) => setMapModal({ isOpen: true, title, query: query || `제주 ${title}` });
   const closeMap = () => setMapModal({ isOpen: false, title: '', query: '' });
   const searchRealtimePrice = (keyword) => window.open(`https://search.naver.com/search.naver?query=${encodeURIComponent(keyword)}`, '_blank');
-  const getDateLabel = (dayIndex) => `6.${3 + dayIndex - 1}`;
-
-  // ★ 구글 지도로 전체 경로 열기 기능 ★
-  const openGoogleDirections = (daySchedules) => {
-    if (!daySchedules || daySchedules.length === 0) return;
-    
-    // 장소가 1개일 경우 그냥 검색 결과로
-    if (daySchedules.length === 1) {
-      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(daySchedules[0].query)}`, '_blank');
-      return;
-    }
-
-    // 장소가 2개 이상일 경우 출발지, 도착지, 경유지 설정
-    const origin = daySchedules[0].query;
-    const destination = daySchedules[daySchedules.length - 1].query;
-    const waypoints = daySchedules.slice(1, -1).map(s => encodeURIComponent(s.query)).join('|');
-    
-    let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
-    if (waypoints) url += `&waypoints=${waypoints}`;
-    
+  
+  // ★ 구체적인 A -> B 길찾기 경로 띄우기 ★
+  const openGoogleDirections = (from, to) => {
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}`;
     window.open(url, '_blank');
   };
 
-  // --- 데이터 수정 함수들 ---
+  const getDateLabel = (dayIndex) => `6.${3 + dayIndex - 1}`;
+  
+  // 일자별 테마 색상 헬퍼
+  const getDayColor = (day) => {
+    const colors = ['bg-pink-500', 'bg-teal-500', 'bg-yellow-500', 'bg-indigo-500', 'bg-orange-500'];
+    return colors[(day - 1) % 5];
+  };
+
+  // --- 데이터 수정 함수 ---
   const addSchedule = (e) => {
     e.preventDefault();
     if (!newSchedule.trim()) return;
     const newSchedules = {
       ...schedules,
-      [activeDay]: [...schedules[activeDay], { id: Date.now(), time: newTime || '-', text: newSchedule.trim(), query: newSchedule.trim() }].sort((a, b) => a.time.localeCompare(b.time))
+      [activeDay]: [...schedules[activeDay], { id: Date.now(), time: newTime || '-', text: newSchedule.trim(), query: newSchedule.trim(), driveTime: '직접이동' }].sort((a, b) => a.time.localeCompare(b.time))
     };
     setSchedules(newSchedules);
     syncToFirestore(newSchedules, checklists);
@@ -244,10 +257,7 @@ export default function App() {
   };
 
   const toggleCheck = (person, id) => {
-    const newChecklists = {
-      ...checklists,
-      [person]: checklists[person].map(item => item.id === id ? { ...item, checked: !item.checked } : item)
-    };
+    const newChecklists = { ...checklists, [person]: checklists[person].map(item => item.id === id ? { ...item, checked: !item.checked } : item) };
     setChecklists(newChecklists);
     syncToFirestore(schedules, newChecklists);
   };
@@ -255,10 +265,7 @@ export default function App() {
   const addChecklistItem = (e) => {
     e.preventDefault();
     if (!newItem.trim()) return;
-    const newChecklists = {
-      ...checklists,
-      [activePerson]: [...checklists[activePerson], { id: Date.now().toString(), category: '추가 항목', text: newItem.trim(), checked: false }]
-    };
+    const newChecklists = { ...checklists, [activePerson]: [...checklists[activePerson], { id: Date.now().toString(), category: '추가 항목', text: newItem.trim(), checked: false }] };
     setChecklists(newChecklists);
     syncToFirestore(schedules, newChecklists);
     setNewItem('');
@@ -302,18 +309,55 @@ export default function App() {
 
         <main className="flex-1 overflow-y-auto px-5 py-6 pb-28 scroll-smooth">
           
-          {/* ★ NEW: 아기자기한 동선지도 (여정 지도) 탭 ★ */}
-          {activeTab === 'overview' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="mb-6 bg-teal-50 border border-teal-100 rounded-2xl p-4">
-                <h2 className="text-[15px] font-bold text-teal-800 mb-1 flex items-center">
-                  <Route className="w-4 h-4 mr-1.5" /> 아기자기한 여정 지도
+          {/* ★ 1. 전체 지도 탭 (제주도 모양 아기자기한 맵) ★ */}
+          {activeTab === 'fullmap' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+              <div className="mb-6 bg-blue-50 border border-blue-100 rounded-2xl p-4 shadow-sm">
+                <h2 className="text-[15px] font-bold text-blue-800 mb-1 flex items-center">
+                  <Globe className="w-4 h-4 mr-1.5" /> 제주도 전체 여정 지도
                 </h2>
-                <p className="text-xs text-teal-700 break-keep leading-relaxed">
-                  오늘 하루 우리가 이동할 경로입니다. 딱딱한 구글지도 대신 귀여운 보드게임 형태로 일정을 한눈에 확인하세요!
+                <p className="text-xs text-blue-700 break-keep leading-relaxed">
+                  4박 5일간 방문할 목적지들입니다. 한곳에 치우치지 않고 동부에서 서부로 완벽하게 이어지는 동선을 확인하세요!
                 </p>
               </div>
 
+              {/* 제주도 형상을 CSS로 구현 */}
+              <div className="relative w-full aspect-[4/3] bg-teal-50 rounded-[50%_50%_50%_50%_/_60%_60%_40%_40%] border-4 border-teal-200 mt-8 mb-8 shadow-inner overflow-visible">
+                {/* 한라산 형태 */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-16 bg-teal-100/70 rounded-full blur-md"></div>
+                <div className="absolute top-[48%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-extrabold text-teal-600/50">한라산</div>
+
+                {/* 목적지 마커들 */}
+                {MAP_LOCATIONS.map((loc, i) => (
+                  <div key={i} className="absolute flex flex-col items-center group cursor-pointer" style={{ left: loc.x, top: loc.y, transform: 'translate(-50%, -50%)' }}>
+                    <div className={`w-4 h-4 rounded-full border-2 border-white shadow-md flex items-center justify-center ${getDayColor(loc.day)} transform transition-transform group-hover:scale-125 z-10`}>
+                      <span className="text-[8px] font-bold text-white leading-none">{loc.day}</span>
+                    </div>
+                    <span className="text-[9px] font-bold text-gray-700 bg-white/90 px-1.5 py-0.5 rounded-md shadow-sm mt-1 whitespace-nowrap absolute top-full opacity-80 group-hover:opacity-100 group-hover:z-20 transition-opacity">
+                      {loc.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* 일자별 컬러 범례 */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                <h3 className="text-xs font-bold text-gray-500 mb-3 text-center border-b pb-2">일자별 핀(Pin) 색상 안내</h3>
+                <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center">
+                  {[1,2,3,4,5].map(d => (
+                    <div key={d} className="flex items-center gap-1.5">
+                      <div className={`w-3.5 h-3.5 rounded-full shadow-sm border border-white ${getDayColor(d)}`}></div>
+                      <span className="text-xs text-gray-700 font-medium whitespace-nowrap">Day {d}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ★ 2. 동선지도 탭 (목적지 간 길찾기 연동) ★ */}
+          {activeTab === 'overview' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
                 {[1, 2, 3, 4, 5].map(day => (
                   <button key={day} onClick={() => setActiveDay(day)} className={`flex flex-col items-center min-w-[70px] px-3 py-2.5 rounded-2xl font-medium transition-colors ${activeDay === day ? 'bg-teal-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
@@ -323,60 +367,71 @@ export default function App() {
               </div>
 
               <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 mb-4 relative overflow-hidden">
-                {/* 배경 꾸미기 요소 */}
-                <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-yellow-100 rounded-full mix-blend-multiply filter blur-2xl opacity-60"></div>
-                <div className="absolute bottom-10 left-[-20px] w-32 h-32 bg-teal-100 rounded-full mix-blend-multiply filter blur-2xl opacity-60"></div>
-                
-                <h2 className="text-lg font-bold text-gray-800 mb-8 flex items-center relative z-10">
-                  <MapPinned className="w-5 h-5 mr-2 text-teal-500" /> {getDateLabel(activeDay)} 동선 요약
+                <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center relative z-10">
+                  <MapPinned className="w-5 h-5 mr-2 text-teal-500" /> {getDateLabel(activeDay)} 상세 동선
                 </h2>
 
-                <div className="relative z-10 min-h-[200px] mb-8">
+                <div className="relative z-10 pb-4">
                   {schedules[activeDay].length === 0 ? (
-                    <div className="text-center py-10 text-gray-400 text-sm font-medium">오늘은 일정이 텅 비어있네요!</div>
+                    <div className="text-center py-10 text-gray-400 text-sm font-medium">일정을 추가해주세요!</div>
                   ) : (
                     <div className="relative">
-                      {/* 타임라인 메인 줄 */}
-                      <div className="absolute left-[27px] top-4 bottom-4 w-1.5 bg-teal-100 rounded-full"></div>
+                      {/* 타임라인 메인 줄 (연결선이 끊기지 않게 배경으로 둠) */}
+                      {schedules[activeDay].length > 1 && (
+                        <div className="absolute left-[27px] top-6 bottom-10 w-1.5 bg-gray-100 rounded-full z-0"></div>
+                      )}
                       
-                      <ul className="space-y-8">
+                      <ul className="space-y-0">
                         {schedules[activeDay].map((item, index) => {
-                          const colors = ['bg-pink-400', 'bg-teal-400', 'bg-yellow-400', 'bg-indigo-400', 'bg-orange-400'];
-                          const colorClass = colors[index % colors.length];
+                          const nextItem = schedules[activeDay][index + 1];
+                          const colorClass = getDayColor(activeDay); // 해당 일차의 테마색 적용
                           
                           return (
-                            <li key={item.id} className="flex items-center gap-4 relative group">
-                              {/* 동그라미 마커 */}
-                              <div className={`w-14 h-14 rounded-full border-4 border-white shadow-md flex items-center justify-center flex-shrink-0 z-10 ${colorClass} transition-transform group-hover:scale-110`}>
-                                <span className="text-white font-extrabold text-lg">{index + 1}</span>
-                              </div>
-                              
-                              {/* 텍스트 박스 */}
-                              <div className="flex-1 bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-gray-100 relative">
-                                <div className="absolute left-[-6px] top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-l border-b border-gray-100 transform rotate-45"></div>
-                                <p className="text-xs font-extrabold text-teal-500 mb-1">{item.time}</p>
-                                <p className="text-sm font-bold text-gray-800 break-keep">{item.text}</p>
-                              </div>
-                            </li>
+                            <React.Fragment key={item.id}>
+                              {/* 실제 목적지 카드 */}
+                              <li className="flex items-center gap-4 relative z-10 pt-2">
+                                <div className={`w-14 h-14 rounded-full border-4 border-white shadow-md flex items-center justify-center flex-shrink-0 z-10 ${colorClass}`}>
+                                  <span className="text-white font-extrabold text-lg">{index + 1}</span>
+                                </div>
+                                <div className="flex-1 bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-gray-100 relative">
+                                  <div className="absolute left-[-6px] top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-l border-b border-gray-100 transform rotate-45"></div>
+                                  <p className="text-[11px] font-extrabold text-teal-600 mb-1">{item.time}</p>
+                                  <p className="text-sm font-bold text-gray-800 break-keep leading-snug">{item.text}</p>
+                                </div>
+                              </li>
+
+                              {/* 다음 장소로의 이동 (소요시간 + 길찾기 버튼) */}
+                              {nextItem && (
+                                <li className="flex items-center gap-4 relative z-10 py-3">
+                                  <div className="w-14 flex justify-center opacity-0"></div> {/* 빈 공간 맞춰주기 */}
+                                  <button 
+                                    onClick={() => openGoogleDirections(item.query, nextItem.query)} 
+                                    className="flex-1 bg-white border border-blue-200 rounded-xl p-3 flex items-center justify-between shadow-sm hover:bg-blue-50 transition-colors group active:scale-95"
+                                  >
+                                    <div className="flex items-center">
+                                      <Car className="w-4 h-4 text-blue-400 mr-2" />
+                                      <span className="text-xs font-extrabold text-gray-700">
+                                        차량 {item.driveTime || '이동'} 소요
+                                      </span>
+                                    </div>
+                                    <span className="text-[10px] font-bold text-white bg-blue-500 px-3 py-1.5 rounded-lg shadow-sm flex items-center">
+                                      경로안내 <Route className="w-3 h-3 ml-1"/>
+                                    </span>
+                                  </button>
+                                </li>
+                              )}
+                            </React.Fragment>
                           );
                         })}
                       </ul>
                     </div>
                   )}
                 </div>
-
-                {/* 구글 길찾기 연동 버튼 */}
-                <button 
-                  onClick={() => openGoogleDirections(schedules[activeDay])}
-                  className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm flex items-center justify-center hover:bg-gray-800 shadow-xl transition-all active:scale-[0.98] relative z-10"
-                >
-                  <MapIcon className="w-5 h-5 mr-2" /> 구글 지도로 드라이브 경로 보기
-                </button>
               </div>
             </div>
           )}
 
-          {/* 일정 관리 탭 */}
+          {/* 3. 일정 수정 탭 */}
           {activeTab === 'schedule' && (
             <div>
               <div className="flex space-x-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
@@ -416,6 +471,7 @@ export default function App() {
             </div>
           )}
 
+          {/* 4. 숙소 탭 */}
           {activeTab === 'accommodations' && (
             <div className="space-y-6 pb-4">
               {OPTIMAL_ACCOMMODATIONS.map((acc) => (
@@ -431,11 +487,16 @@ export default function App() {
                     <Banknote className={`w-5 h-5 mr-2 flex-shrink-0 ${acc.color === 'teal' ? 'text-teal-600' : 'text-blue-600'}`} />
                     <div><p className="text-[10px] text-gray-500 font-medium mb-0.5">평균 예상 가격</p><p className="text-sm font-bold text-gray-800">{acc.priceRange}</p></div>
                   </div>
+                  <div className="flex gap-2 mt-auto">
+                    <button onClick={() => searchRealtimePrice(acc.searchKeyword)} className="flex-1 flex items-center justify-center text-sm text-white bg-gray-900 hover:bg-gray-800 px-3 py-2.5 rounded-xl transition-colors font-medium shadow-sm"><Search className="w-4 h-4 mr-1.5" /> 요금 확인</button>
+                    <button onClick={() => openMap(acc.name, acc.query)} className="flex-[0.8] flex items-center justify-center text-sm text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 px-3 py-2.5 rounded-xl transition-colors font-medium"><MapIcon className="w-4 h-4 mr-1.5" /> 위치 보기</button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
 
+          {/* 5. 준비물 탭 */}
           {activeTab === 'checklist' && (
             <div>
               <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-gray-100 mb-4">
@@ -473,18 +534,21 @@ export default function App() {
           )}
         </main>
 
-        <nav className="absolute bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 px-2 py-4 flex justify-around items-center pb-8 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-20">
-          <button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'overview' ? 'text-teal-500' : 'text-gray-400 hover:text-gray-600'}`}>
-            <MapPinned className={`w-6 h-6 ${activeTab === 'overview' ? 'fill-teal-50' : ''}`} /><span className="text-[10px] font-bold">동선지도</span>
+        <nav className="absolute bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 px-2 py-4 flex justify-between items-center pb-8 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-20">
+          <button onClick={() => setActiveTab('fullmap')} className={`flex flex-col items-center gap-1 flex-1 transition-colors ${activeTab === 'fullmap' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600'}`}>
+            <Globe className={`w-5 h-5 sm:w-6 sm:h-6 ${activeTab === 'fullmap' ? 'fill-blue-50' : ''}`} /><span className="text-[9px] sm:text-[10px] font-bold">전체지도</span>
           </button>
-          <button onClick={() => setActiveTab('schedule')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'schedule' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>
-            <ListTodo className={`w-6 h-6 ${activeTab === 'schedule' ? 'fill-gray-100' : ''}`} /><span className="text-[10px] font-bold">일정수정</span>
+          <button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 flex-1 transition-colors ${activeTab === 'overview' ? 'text-teal-500' : 'text-gray-400 hover:text-gray-600'}`}>
+            <MapPinned className={`w-5 h-5 sm:w-6 sm:h-6 ${activeTab === 'overview' ? 'fill-teal-50' : ''}`} /><span className="text-[9px] sm:text-[10px] font-bold">동선지도</span>
           </button>
-          <button onClick={() => setActiveTab('accommodations')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'accommodations' ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}>
-            <Bed className={`w-6 h-6 ${activeTab === 'accommodations' ? 'fill-teal-50' : ''}`} /><span className="text-[10px] font-bold">추천숙소</span>
+          <button onClick={() => setActiveTab('schedule')} className={`flex flex-col items-center gap-1 flex-1 transition-colors ${activeTab === 'schedule' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}>
+            <ListTodo className={`w-5 h-5 sm:w-6 sm:h-6 ${activeTab === 'schedule' ? 'fill-gray-100' : ''}`} /><span className="text-[9px] sm:text-[10px] font-bold">일정수정</span>
           </button>
-          <button onClick={() => setActiveTab('checklist')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'checklist' ? 'text-indigo-500' : 'text-gray-400 hover:text-gray-600'}`}>
-            <CheckCircle2 className={`w-6 h-6 ${activeTab === 'checklist' ? 'fill-indigo-50' : ''}`} /><span className="text-[10px] font-bold">준비물</span>
+          <button onClick={() => setActiveTab('accommodations')} className={`flex flex-col items-center gap-1 flex-1 transition-colors ${activeTab === 'accommodations' ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}>
+            <Bed className={`w-5 h-5 sm:w-6 sm:h-6 ${activeTab === 'accommodations' ? 'fill-teal-50' : ''}`} /><span className="text-[9px] sm:text-[10px] font-bold">추천숙소</span>
+          </button>
+          <button onClick={() => setActiveTab('checklist')} className={`flex flex-col items-center gap-1 flex-1 transition-colors ${activeTab === 'checklist' ? 'text-indigo-500' : 'text-gray-400 hover:text-gray-600'}`}>
+            <CheckCircle2 className={`w-5 h-5 sm:w-6 sm:h-6 ${activeTab === 'checklist' ? 'fill-indigo-50' : ''}`} /><span className="text-[9px] sm:text-[10px] font-bold">준비물</span>
           </button>
         </nav>
 
