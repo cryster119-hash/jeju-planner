@@ -11,15 +11,15 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
-// ★★★ 이 부분을 본인의 기존 Firebase Config 정보로 교체하세요! ★★★
+// Firebase Config - 환경변수로 관리
 const firebaseConfig = {
-  apiKey: "AIzaSyAkzmoK1dQrxfXFiPVnhhfUvRITM3nM3g4",
-  authDomain: "readybaby-bd5bb.firebaseapp.com",
-  projectId: "readybaby-bd5bb",
-  storageBucket: "readybaby-bd5bb.firebasestorage.app",
-  messagingSenderId: "630742601183",
-  appId: "1:630742601183:web:559618f9647db8beac086a",
-  measurementId: "G-11K09F8QFY"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Firebase 초기화
